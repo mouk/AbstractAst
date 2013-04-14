@@ -1,0 +1,116 @@
+---
+layout: post
+title: Using IronPython to configure Castle Windsor I
+tags:
+- C#
+- Castle
+- DSL
+- IoC
+- IronPython
+- Programming
+- Windsor
+- XML
+status: publish
+type: post
+published: true
+meta:
+  _edit_last: '1'
+  _edit_lock: '1250597827'
+---
+<p></p>  <div style="background-color: #e5e5e5; margin: 10px 40px">   <p style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid" align="center"><font color="#004080"><strong>Pysor Series</strong></font></p>    <ul>     <li>       <div style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid"><a href="http://abstractast.com/2009/08/using-ironpython-to-configure-castle-windsor/">Using IronPython to configure Castle Windsor I</a> : the basic functionality</div>     </li>      <li>       <div style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid"><a href="http://abstractast.com/2009/08/using-ironpython-to-configure-castle-windsor-ii/">Using IronPython to configure Castle Windsor II</a> : parameters and references</div>     </li>      <li>       <div style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid"><a href="http://abstractast.com/2009/09/using-ironpython-to-configure-castle-windsor-iii/">Using IronPython to configure Castle Windsor III</a> : arrays and lists</div>     </li>   </ul> </div>  <p>Castle Windsor is a very popular IoC container in the .Net world. Like almost all other containers it can be configured using either a fluent interface or an xml-based configuration file.</p>  <p>The fluent interface has the advantage of being strongly typed, what spares you a lot of errors caused by typos. On the other hand, it is hard coded and can’t be changed easily without recompiling (Actually you could use an IoC container to load you IoC container configuration dynamically but it give a rise to the question: “How do configure the container to load its own configuration?” ;-) )</p>  <p>The other option is to use an xml file. Despite being the most used solution in almost all containers it is really a very ugly solution. The configuration file can get very big and very complicated.</p>  <p>As I am reading <a href="http://www.manning.com/foord/">IronPython</a> in Action from Manning Publications, I thought I could configure Windsor using Python and a very tiny DSL. IronPython is an interpreted language for .Net framework. It combines the elegance of Python with the strength of .Net. Since it being interpreted it is a suitable solution for configuration.</p>  <p>For the beginning I will start with a simple solution, that can configure basic service without an enough for me to be able to configure just basic services without parameter zing. The syntax for configuring a simple implementation in Castle looks like:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:bf6ad6ce-079b-4a50-8af3-cca3a4651ffa" class="wlWriterSmartContent">   <pre class="c#" name="code">container.AddComponent(&quot;service.name&quot;
+				typeof(IService&gt;),
+				typeof(Implementation));</pre>
+</div>
+
+<p>Of course there is a whole bunch of other&#160; settings like lifestyle and parameters, but I will ignore that for now.</p>
+
+<p>Analyzing this one line I realized that all I need is a function with three arguments: the name of the coupling, the service type and the implementation type. SoI coded thus a function in C#:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:1c24cf43-d9da-407e-8c96-debf6b628784" class="wlWriterSmartContent">
+  <pre class="c#" name="code">private static void ConfigureContainer(IWindsorContainer container, string scriptPath)
+{
+	var engine = Python.CreateEngine();
+    var runtime = engine.Runtime;
+    var scope = runtime.CreateScope();
+    scope.SetVariable(&quot;__main__&quot;, &quot;__main__&quot;);
+    Action&lt;string, Type, Type&gt; action = 
+			(name, service, impl)=&gt; 
+				container.AddComponent(name, service, impl);
+
+	//Inject this function into IronPython runtime
+    scope.SetVariable(&quot;add&quot;,action); 
+    var script = engine.CreateScriptSourceFromFile(scriptPath);
+    var code = script.Compile();
+    code.Execute(scope);
+}</pre>
+</div>
+
+<p>To test this DSL I wrote a simple interface with a single implementation to bind them with Python.</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:b71804f3-a8bc-46a3-900e-fd1c10257c62" class="wlWriterSmartContent">
+  <pre class="c#" name="code">namespace PythonConfig
+{
+    public interface IDependency
+    {
+        string Name
+        { get; }
+    }
+    public class Dependency : IDependency
+    {
+        public string Name
+        {
+            get { return &quot;Default&quot;; }
+        }
+    }
+}</pre>
+</div>
+
+<p>And the Python configuration is just as simple as</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:d702a191-18a6-43c3-aca8-da8ea82ed00a" class="wlWriterSmartContent">
+  <pre class="py" name="code">import clr
+clr.AddReference(&quot;PythonConfig&quot;)
+from PythonConfig import *
+
+add(&quot;name&quot; , IDependency, Dependency)</pre>
+</div>
+
+<p>Now everything is ready. You can configure the container using this file:</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:cbe9c720-076b-4feb-aaf3-25a83b30b9cb" class="wlWriterSmartContent">
+  <pre class="c#" name="code">static void Main(string[] args)
+{
+    var container = new WindsorContainer();
+    ConfigureContainer(container, &quot;script.py&quot;);
+
+    var depend= container.Resolve&lt;IDependency&gt;();
+    Console.WriteLine(depend.Name);
+    Console.ReadLine();
+}</pre>
+</div>
+
+<p>And … it works as expected!</p>
+
+<h3>Todo’s</h3>
+
+<p>I am very aware that this implementation is very limited and incomplete. It is just enough for my needs (That’s how DSL ought to be). Nevertheless, I will try to add some of the missing features. In particularly following&#160; functionalities will be considered very soon:</p>
+
+<ul>
+  <li>Adding a nicer API for referencing assemblies and importing namespaces. </li>
+
+  <li>Adding parameters to be passed to the constructor. </li>
+
+  <li>Referencing&#160; already registered implementation inside the same configuration script. </li>
+
+  <li>Lifestyle management </li>
+</ul>
+
+<h3>Links</h3>
+
+<ul>
+  <li><a href="http://ironpython.codeplex.com/">IronPython</a>’s page on Codeplex. </li>
+
+  <li><a href="http://www.amazon.com/IronPython-Action-Michael-Foord/dp/1933988339">IronPython in Action</a> an excellent (and <span style="text-decoration: line-through">currently the only</span> the first) IronPython book by <a href="http://www.voidspace.org.uk/">Michael Foord</a>. </li>
+
+  <li><a href="http://ayende.com/Blog/archive/2006/09/16/IntroductingBinsorTheBooDSLForWindsor.aspx">Binsor</a>: a <a href="http://boo.codehaus.org/">Boo</a> based DSL for Windsor by <a href="http://www.Ayende.com/Blog">Ayende</a>. </li>
+</ul>

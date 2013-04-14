@@ -1,0 +1,148 @@
+---
+layout: post
+title: Using IronPython to configure Castle Windsor III
+tags:
+- C#
+- Castle
+- DSL
+- IoC
+- IronPython
+- Programming
+- Windsor
+status: publish
+type: post
+published: true
+meta: {}
+---
+<div style="background-color: #e5e5e5; margin: 10px 40px"> <p style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid" align="center"><font color="#004080"><strong>Pysor Series</strong></font></p> <ul> <li> <div style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid"><a href="http://abstractast.com/2009/08/using-ironpython-to-configure-castle-windsor/">Using IronPython to configure Castle Windsor I</a> : the basic functionality</div> </li> <li> <div style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid"><a href="http://abstractast.com/2009/08/using-ironpython-to-configure-castle-windsor-ii/">Using IronPython to configure Castle Windsor II</a> : parameters and references</div> </li> <li> <div style="border-bottom-style: solid; border-right-style: solid; border-top-style: solid; border-left-style: solid"><a href="http://abstractast.com/2009/09/using-ironpython-to-configure-castle-windsor-iii/">Using IronPython to configure Castle Windsor III</a> : arrays and lists</div> </li> </ul></div>   <p>In the first two articles I introduced Pysor, the Castle Windsor configuration tool using IronPython. Now I have added some exciting functions to exploit the nice hash table and list syntax feature in IronPython.</p> <p>Since the second part of this series is possible to add (named) parameters to component registration. It accepted only both literal and referential scalars. In the current revision you can exploit the nice list syntax of Python using the square brackets to add arrays and list parameters.</p> <p>A parameter is a string literal or a reference to an already registered service. This value is supplied either to a constructor parameter with the same name or a property.</p> <p>A example used in the last part was to provide AdditionalMessage property like this:</p> <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:61188c36-e49e-4b97-b748-09082e5f9f68" class="wlWriterSmartContent"> <pre name="code" class="py">add( "retriverWithParam", HtmlTitleRetriever, HtmlTitleRetriever, 
+	{'AdditionalMessage': "Test"})</pre>
+</div>
+<p>Now suppose that we have a class that accepts an array of strings in the constructor.&#160; We could provide them using the Python list syntax</p>
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:6ce22de8-54ab-4eb9-834e-317534e9a2f8" class="wlWriterSmartContent">
+<pre name="code" class="py">add( "MessageStorage" , MessageStorage, MessageStorage, 
+	{'messages':['first message', 'second message' ]})</pre>
+</div>
+<p>This syntax works not only for array but also for ILists.</p>
+<p>Things get more interesting when you want to add an array of registered services. The method add returns a hook to the service. You can use this hook to reference the service in the parameters :</p>
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:ed959925-8214-46fb-a789-b9e3396b9842" class="wlWriterSmartContent">
+<pre name="code" class="py">ftp = add( "ftp", FtpFileDownloader, FtpFileDownloader)
+
+add( "MultipleDowloaderStorage", MultipleDowloaderStorage,
+	MultipleDowloaderStorage, {'dowloaders' : [ ftp] })</pre>
+</div>
+<h3>&#160;</h3>
+<h3>Comparison</h3>
+<p>In this section I will compare the same configuration using traditional xml syntax and the Pysor syntax. I am sure not every body would prefer Pysor. I am pretty comfortable with xml, yet I don’t like it. I will choose Pysor anyway. In the next section I will make a small project and use both configuration mechanisms and let you find by yourself, which solution is more elegant and appropriate for you.</p>
+<p>Not breaking the tradition of almost all IoC tutorials, we will need a logging service to be located dynamically. Additionally we have two implementations: ConsoleLog&#160; and FileLog. FileLog expect a file name in its constructor..</p>
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:edee535f-32ec-4a79-8803-7835c8a31653" class="wlWriterSmartContent">
+<pre name="code" class="c#">public interface ILog
+{
+    void Log(string message);
+}
+
+public class FileLog : ILog
+{
+    private readonly string _fileName;
+    public FileLog(string fileName)
+    {
+        _fileName = fileName;
+    }
+
+    public void Log(string message)
+    {
+        Console.WriteLine(_fileName+ " -&gt; " + message);
+    }
+}
+
+public class ConsoleLog : ILog
+{
+    public void Log(string message)
+    {
+        Console.WriteLine(message);
+    }
+}</pre>
+</div>
+<p>In additional we have an <em>IAlgorithm</em> interface with following members:</p>
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:ba032607-ac95-4193-ab6f-ef6d7f70b391" class="wlWriterSmartContent">
+<pre name="code" class="c#">public interface IAlgorithm
+{
+    event EventHandler OnOperationDone;
+    void Run();
+}</pre>
+</div>
+<p><em>Algorithm</em> is a class implementing this interface. <em>AlglorithmRunnner</em> is a class that takes an algorithm with an array of loggers, starts the algorithm and notify all loggers when an event is fired.</p>
+<p>Configuring this setup of dependencies in App.config would look much like:</p>
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:e178480d-0ce9-42e4-9535-1794371d27d1" class="wlWriterSmartContent">
+<pre name="code" class="xml">&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name="castle" type=
+"Castle.Windsor.Configuration.AppDomain.CastleSectionHandler, Castle.Windsor"/&gt;
+  &lt;/configSections&gt;
+
+  &lt;castle&gt;
+    &lt;components&gt;
+      &lt;component id="fileLog"
+                 type="CastleComparison.FileLog, CastleComparison"
+                 service="CastleComparison.ILog, CastleComparison"&gt;
+        &lt;parameters&gt;
+          &lt;fileName&gt;log.txt&lt;/fileName&gt;
+        &lt;/parameters&gt;
+      &lt;/component&gt;
+
+      &lt;component id="consoleLog"
+                 type="CastleComparison.ConsoleLog, CastleComparison"
+                 service="CastleComparison.ILog, CastleComparison"&gt;
+      &lt;/component&gt;
+
+      &lt;component id="algorithm"
+                 type="CastleComparison.Algorithm, CastleComparison"
+                 service="CastleComparison.IAlgorithm, CastleComparison"&gt;
+      &lt;/component&gt;
+
+      &lt;component id="runner"
+                 type="CastleComparison.AlgorithmRunner, CastleComparison"&gt;
+        &lt;parameters&gt;
+          &lt;loggers&gt;
+            &lt;array&gt;
+              &lt;item&gt;${consoleLog}&lt;/item&gt;
+              &lt;item&gt;${fileLog}&lt;/item&gt;
+            &lt;/array&gt;
+          &lt;/loggers&gt;
+        &lt;/parameters&gt;
+      &lt;/component&gt;
+
+    &lt;/components&gt;
+  &lt;/castle&gt;
+&lt;/configuration&gt;</pre>
+</div>
+<p>On the other hand, configuring it with Pysor is as simple as</p>
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:47566c04-b019-483c-9930-789f78946a4a" class="wlWriterSmartContent">
+<pre name="code" class="py">clr.AddReference("CastleComparison")
+from CastleComparison import *
+
+fileLog = add("fileLog", ILog, FileLog, 
+	{"fileName":"log.txt"})
+consoleLog = add("consoleLog", ILog, ConsoleLog)
+
+add("algorithm ", IAlgorithm , Algorithm )
+
+add("runner", AlgorithmRunner, AlgorithmRunner, 
+	{"loggers": [consoleLog, fileLog]})</pre>
+</div>
+<p>Clearly, I will always choose the second configuration.</p>
+<h3>To-do's</h3>
+<p>The updated to-do list is now</p>
+<ul>
+<li><span style="text-decoration: line-through">Adding a nicer API for referencing assemblies and importing namespaces</span> (I have now idea how to do it). </li>
+<li><span style="text-decoration: line-through">Adding parameters to be passed to the constructor.</span> </li>
+<li><span style="text-decoration: line-through">Passing parameters as lists or arrays.</span> </li>
+<li>Dictionary based parameters </li>
+<li><span style="text-decoration: line-through">Referencing already registered implementation inside the same configuration script.</span> </li>
+<li>Documenting and signing the assembly </li>
+<li>Lifestyle management </li>
+<li>Considering turning Pysor into an Interpreter to be used as the built-in XmlInterpreter </li>
+</ul>
+<h3>Source Code</h3>
+<p>Please don’t forget to download the code from <a href=" https://github.com/mouk/Pysor/ ">GitHub</a> and try it yourself.</p>
+<p>All remarks , ideas, bug reports, etc. will be appreciated.</p>

@@ -1,0 +1,35 @@
+---
+layout: post
+title: Task List Generator
+tags:
+- CI
+- MSBuild
+- Programming
+- Task
+- TeamCity
+- TODO
+status: publish
+type: post
+published: true
+meta: {}
+---
+<p align="left">A Task list is the list, that VS generate for your code files including all special marker items like TODO, HACK, etc. Visual studio lists all those items in the tasks window in grid containing the description, file and line number.&#160; Clicking an items in the tasks windows cause the editor to jump to this line in the code.&#160; Unfortunately, visual studio show only tasks for opened file. Additionally, I thinks the number of task is a metric for code maturity and should be integrated in the continues integration process.</p>  <h3>The Project</h3>  <p align="left">After some googling with both Google and Bing I decided to do it myself. The only similar program I found, was the <a href="http://wiki.hudson-ci.org/display/HUDSON/Task+Scanner+Plugin">Task Scanner plug-in</a> from the Hudson project.&#160; Unfortunately, this plug-in is written in Java and I didn’t want to assume the presence of a Java runtime on the build server. Besides, I want to integrate this job as build task (MSBuild build for now but maybe also for NAnt, etc..). For all other purposes a command line interface is essential. All those requirements make the amount of code I could reuse very minimal. So I went for the own solution and started summarizing the requirements.</p>  <h3>Wish List</h3>  <p align="left">If you prefer the scrum terminology, you can call this wish list the product backlog. It contains all items that COULD be implemented.</p>  <p align="left">Important feature for me are:</p>  <ul>   <li>     <div align="left">Recognizing all lines including // TODO token</div>   </li>    <li>     <div align="left">Flexibility of defining pre configured and custom tasks</div>   </li>    <li>     <div align="left">Assigning priorities for the the different types of tasks</div>   </li>    <li>     <div align="left">Returning for each task a TaskItem object with the description, file and line number.</div>   </li>    <li>     <div align="left">Grouping the tasks by file name or&#160; priority.</div>   </li>    <li>     <div align="left">Integration with TeamCity</div>   </li>    <li>     <div align="left">Generating reports in both xml and html formats</div>   </li>    <li>     <div align="left">being able to define thresholds for the occurrence of the different type/priorities&#160; to consider a build failed</div>   </li> </ul>  <h3>&#160;</h3>  <p>To generate a task list to you MSBuild script all you need the the following xml snippet:</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:86c57aba-7adc-4695-ab8d-ca426bfa8fc4" class="wlWriterSmartContent">   <pre class="xml" name="code">&lt;UsingTask AssemblyFile=&quot;$(ToolPath)\TasklistGenerator\TasklistGenerator.dll&quot; TaskName=&quot;Tasklist&quot; /&gt;
+
+&lt;Target Name=&quot;tasklist&quot; &gt;
+	&lt;Message Text=&quot;==== Generate tas klist ===&quot; /&gt;
+	&lt;CreateItem Include=&quot;src\**\*.cs&quot;&gt;
+      &lt;Output TaskParameter=&quot;Include&quot; ItemName=&quot;Sourcefiles&quot; /&gt;
+    &lt;/CreateItem&gt;
+    &lt;Tasklist Files=&quot;@(Sourcefiles)&quot; OutputFile=&quot;doc\tasks.html&quot; /&gt; 
+&lt;/Target&gt;</pre>
+</div>
+
+<h3>&#160;</h3>
+
+<h3>The Code</h3>
+
+<p>Currently, still the project in the pre alpha phase of the CTP (PACTP as I call it since two minutes ago). It Uses a Regex to scan all specified cs files and generates a simple xml representation. A html reporting facility is also in pre stone age look and feel&#160; html (Did I mention I don’t do UI?)&#160; I will try to find out how does usually build tasks, like NUnit, integrate with build server. not sure if there is a common format. The only interface available currently is the MSBuild task.</p>
+
+<p>You can download the most recent source code from GitHub&#160; at the following link <a title="http://github.com/mouk/Stutali/tree/master" href="http://github.com/mouk/Stutali/tree/master">http://github.com/mouk/Stutali/tree/master</a>.</p>
+
+<p>Because I have never developed an integration task, I don’t know what are the requirements exactly such a thing. More than ever, every idea or notes will be highly appreciated.</p>

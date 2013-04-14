@@ -1,0 +1,69 @@
+---
+layout: post
+title: xUnit.net and running multiple test assemblies
+tags:
+- Gallio
+- MSBuild
+- NCover
+- NUnit
+- Programming
+- tdd
+- TeamCity
+- Test
+- unit
+- xUnit
+status: publish
+type: post
+published: true
+meta: {}
+---
+<p><a href="http://www.codeplex.com/xunit">xUnit.net</a> is a unit testing framework for the .Net platform designed with inspired by some nice ideas like reducing custom attributes, one instance per method , etc. The Internet is full of blog posts and articles about xUnit. In this <a href="http://xunit.codeplex.com/Wiki/View.aspx?title=Comparisons&amp;referringTitle=Home">link</a> you can find a comparison of xUnit and other popular unit testing frameworks.</p>  <p>For the CI I use MSBuild script that compiles, runs test, generates documentations, etc.&#160; For test projects I have the habit of postfixing them with &quot;Tests”&#160; to simplify fetching all test dlls in MSBuild scripts using wild cards (Who dares to claim that Convention over Configuration is new in the .Net world? ). Running all NUnit tests in some project would look like :</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:fd8405d6-bdad-4cf5-a85c-c20227d95a22" class="wlWriterSmartContent">   <pre class="xml" name="code">&lt;CreateItem Include=&quot;tests\*\bin\Debug\*.Tests.dll&quot;&gt;
+  &lt;Output TaskParameter=&quot;Include&quot; ItemName=&quot;TestAssembly&quot; /&gt;
+&lt;/CreateItem&gt;
+&lt;NUnit Assemblies=&quot;@(TestAssembly)&quot; ToolPath=&quot;$(NUnit-ToolPath)&quot; /&gt;</pre>
+</div>
+
+<p>Adding new test project will require me to add nothing to the build script. I have just to follow the convention.</p>
+
+<p>Unfortunately this is not possible with xUnit task because it accepts only one assembly. Thus I have to specify each assembly separately. The xml result will be also split. <a href="http://twitter.com/bradwilson">@bradwilson</a> nicely wrote me via&#160; Twitter, that I can use a project file to specify multiple assembly.&#160; This, while solving the second problem, doesn’t enable you to use wild cards. You have to add each assembly manually to the project.</p>
+
+<p>Gallio is a tool&#160; or, may better a framework, for running many test frameworks in the same way and provides as unique results format. It integrates also very well with some build servers.</p>
+
+<p>To integrate Gallio in my MSBuild script I downloaded the bits from <a href="http://www.gallio.org/">here</a> and extracted them to the tools folder inside my project root folder.</p>
+
+<p>Running the tests was as simple as</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:5707c53a-fbff-429b-86a7-a4ec182f9f52" class="wlWriterSmartContent">
+  <pre class="xml" name="code">&lt;UsingTask AssemblyFile=&quot;$(ToolPath)\gallio\Gallio.MSBuildTasks.dll&quot;
+	TaskName=&quot;Gallio&quot; /&gt;
+
+&lt;Target Name=&quot;Test&quot; DependsOnTargets=&quot;Build&quot;&gt;
+	&lt;Message Text=&quot;==== Starting Gallio to run tests ===&quot; /&gt;
+	
+	&lt;CreateItem Include=&quot;tests\*\bin\Debug\*Tests.dll&quot;&gt;
+      &lt;Output TaskParameter=&quot;Include&quot; ItemName=&quot;TestAssemblies&quot; /&gt;
+    &lt;/CreateItem&gt;
+    &lt;Gallio RunnerExtensions=&quot;TeamCityExtension,Gallio.TeamCityIntegration&quot;
+        Assemblies=&quot;@(TestAssemblies)&quot;  /&gt; 
+&lt;/Target&gt;</pre>
+</div>
+
+<p><em>RunnerExtensions</em> is an extension for Gallio to provide TeamCity with status messages. Integrating Gallio with TeamCity will be discussed in a following post.</p>
+
+<p>&#160;</p>
+
+<h3>NUnit&#160;&#160; and running multiple assemblies from the console</h3>
+
+<p>Even though NUnit MSBuild task supports multiple assemblies, if you want to use NCover with NUnit&#160; you have to do some manual work to enable NCover running NUnit console tool. The @() operator of MSBuild join all paths with a semicolon. On the other hand NUnit console runner expect all assemblies to be separated with a white space. Fortunately you can tell @() how it should concatenate the paths.</p>
+
+<div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:cfcb8e85-8674-4b37-9ae8-0ae4a90f0d97" class="wlWriterSmartContent">
+  <pre class="xml" name="code">&lt;NCover ToolPath=&quot;$(NCoverPath)&quot;
+        CommandLineExe=&quot;$(NUnit-ToolPath)\nunit-console.exe&quot;
+        WorkingDirectory=&quot;.&quot;
+        CommandLineArgs=&quot;@(TestDll-&gt;'%(Identity)', ' ')&quot;
+        CoverageFile=&quot;$(CoverageFile)&quot;
+        LogFile=&quot;$(CoveragePath)\Coverage.log&quot;
+        AssemblyList=&quot;@(CoverageDll)&quot; /&gt;</pre>
+</div>
+
+<p>In the fourth line @ concatenate the relative path of each file using a white space. You may need to surround each path with a quote if it contains white spaces.</p>

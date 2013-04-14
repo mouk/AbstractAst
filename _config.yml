@@ -2,26 +2,26 @@ auto: true
 markdown: rdiscount
 pygments: true
 
-title: In The Attic
+title: Abstract AST
 
-url: http://www.in-the-attic.com
+url: http://abstractast.com
 
 permalink: /:year/:month/:day/:title/
 
 author:
-    name: Garry Welding
-    email: gkwelding@gmail.com
-    github: gkwelding
-    twitter: GarryWelding
-    gravatar: http://www.gravatar.com/avatar/5b7d3122776b44cfb18ed7aa865804a1.png
+    name: Moukarram Kabbash
+    email: webmaster@abstractast.com
+    github: mouk
+    twitter: dermouk
+#    gravatar: http://www.gravatar.com/avatar/5b7d3122776b44cfb18ed7aa865804a1.png
 
 comments:
     provider: disqus
     disqus:
-        short_name: intheatticuk
+        short_name: abstractast
         
 analytics:
     provider: google 
     google: 
-        tracking_id: 'UA-18015420-1'
-        domain: 'in-the-attic.com'
+        tracking_id: 'UA-10348417-1'
+        domain: 'bstractast.com'

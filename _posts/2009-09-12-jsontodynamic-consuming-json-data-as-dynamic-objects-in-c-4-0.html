@@ -1,0 +1,52 @@
+---
+layout: post
+title: ! 'JsonToDynamic: Consuming Json Data as Dynamic Objects in C# 4.0'
+tags:
+- C#
+- Dynamic
+- Programming
+status: publish
+type: post
+published: true
+meta:
+  _edit_lock: '1254909411'
+  _edit_last: '1'
+---
+About a month ago I was reading the early access edition of <a href="http://www.manning.com/skeet2/">C# in Depth, Second Edition</a> from <a href="http://msmvps.com/blogs/jon_skeet/default.aspx">Jon Skeet</a>. In this book the auto demonstrates using dynamic objects and the dynamic keyword in C# using a wrapper around an xml document. Suppose you have a xml document containing a number of books
+<div id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:e67611ae-da2f-4bf9-bb7a-29c9e351cdb8" class="wlWriterEditableSmartContent" style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px">
+<pre class="xml">&lt;book&gt;
+	&lt;autor&gt;The Autor&lt;/autor&gt;
+&lt;/boo&gt;</pre>
+</div>
+Now you can access the auto properties of each book in the following way:
+<div id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:5fd41805-8f2d-480c-af64-1092399590a2" class="wlWriterEditableSmartContent" style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px">
+<pre class="c#">dynamic book = GetBookAsDynamic();
+string autoName = book.autor</pre>
+</div>
+Having been using Json intensively  the last few weeks and seeing how easy it is to consume Json in JavaScript, I thought dynamic object would be a fantastic way to make Json more natural in the .Net world. My favorite Json library is the <a href="http://james.newtonking.com/pages/json-net.aspx">Json.Net</a>. Since, I started to code a wrapper about it.
+
+Suppose now you have such an object, that you have Json serialized:
+<div id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:06d6fa5c-d1ed-469e-aabb-7f9ca85895d5" class="wlWriterEditableSmartContent" style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px">
+<pre class="c#">var obj = new
+{
+    Name = "mouk",
+    FavoriteNames = new[] { "mouk", "dermouk", "mouk9000" },
+    NestedValues = new { First = 1, Second = 3, Nums = new[] { 1, 2, 3 } },
+    NestedArray = new object[]{ 1, 3, new[] { 100, 2, 3 } },
+    Age = 25,
+    Height = 180
+};
+
+var serializedObject = JsonConvert.SerializeObject(obj);</pre>
+</div>
+After deserializing it back to a dynamic object you can access as easy as:
+<div id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:6f15e0d5-2847-4e9b-b646-f7d4395f7acf" class="wlWriterEditableSmartContent" style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px">
+<pre class="c#">dynamic _deserializedObject = JsonDeserilizer.GetObjectFromString(serializedObject);
+
+string name= _deserializedObject.Name;
+int age = _deserializedObject.Age;
+
+int nested = _deserializedObject.NestedArray[1];</pre>
+</div>
+<h3>Source Code</h3>
+The source code of this wrapper can be downloaded from <a title="http://github.com/mouk/JsonToDynamic/tree/master" href="http://github.com/mouk/JsonToDynamic/tree/master">http://github.com/mouk/JsonToDynamic/tree/master</a>:

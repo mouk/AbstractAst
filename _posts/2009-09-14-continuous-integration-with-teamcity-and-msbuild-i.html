@@ -1,0 +1,71 @@
+---
+layout: post
+title: Continuous Integration with TeamCity and MSBuild I
+tags:
+- CI
+- MSBuild
+- TeamCity
+status: publish
+type: post
+published: true
+meta:
+  _edit_lock: '1252841214'
+  _edit_last: '1'
+---
+<p>‘To start this article let us cite the definition of Continuous Integration from Martin Fowler’s site:</p>  <blockquote>   <p><i>Continuous Integration is a software development practice where members of a team integrate their work frequently, usually each person integrates at least daily - leading to multiple integrations per day. Each integration is verified by an automated build (including test) to detect integration errors as quickly as possible. Many teams find that this approach leads to significantly reduced integration problems and allows a team to develop cohesive software more rapidly. This article is a quick overview of Continuous Integration summarizing the technique and its current usage.</i></p> </blockquote>  <p>I advice you to read the whole article about <a href="http://martinfowler.com/articles/continuousIntegration.html">Continuous Integration</a> before you go on.</p>  <p>For the sake of CI you need the following tools:</p>  <h3>1 - A Build Server</h3>  <p><a href="http://www.jetbrains.com/teamcity/">TeamCity</a> is very popular CI server from <a href="http://www.jetbrains.com/">JetBrains</a>, the&#160; creator of <a href="http://www.jetbrains.com/resharper/">ReSharper</a>, IntelliJ, etc. I have had also used <a href="http://cruisecontrol.sourceforge.net">CruiseControl.NET</a>, a free CI server from <a href="http://www.thoughtworks.com/">ThoughtWorks</a>, but I liked TeamCity much more because of its friendly UI and distributed agents principle.</p>  <h3>2 - Build Tool</h3>  <p><a href="http://en.wikipedia.org/wiki/MSBuild">MSBuild</a> is an xml-based build platform from Microsoft that comes with the .NET framework. A build platform is some kind of DSL, that helps you to compile your code and do all other related stuff in one action. You could compile source code, execute tests, generate documentation, generate a deployable zip file, publish your web site to the server and almost everything else you may need to do with your code.</p>  <p>Technically, you could write a batch file as you your build script and I have no doubt it will work and do every thing you wish. It just won’t be that convenient.</p>  <p><a href="http://nant.sourceforge.net/">NAnt</a> is another popular build platform ported from Ant for the Java platform.</p>  <p>Recently I have heard a lot about using Rake, the Ruby build tool, in the .NET world. <a href="http://codebetter.com/blogs/james.kovacs/archive/2008/06/27/introducing-psake.aspx">Psake</a>&#160; is another build automation tool written in PowerShell . </p>  <p>&#160;</p>  <p>In this and few next posts I will configuring <a href="http://www.jetbrains.com/teamcity/">TeamCity</a> to do a nightly build for <a href="http://github.com/mouk/Stutali/tree">Stutali</a> , the task list generation tool, I introduced last in this <a href="http://abstractast.com/2009/09/tasklist-generator/">article</a>.The task list generation task will be also included in the nightly build to process its own code and generate the task list.</p>  <h3>Building the Build Script</h3>  <p>The first step in configuring the build server is to add a build script to the project.&#160; Because TeamCity supports sln files directly, a build script is technically not necessary if you just want to compile the project. Anyway if you want to perform some further building steps like processing&#160; source code or deployment you will need the script.</p>  <p>As already mentioned, MSBuild is the&#160; technology that will be used in this article. The first and most important task is the bare compilation. For this task MSBuild needs only to know&#160; where the sln file is.</p>  <div style="padding-bottom: 0px; margin: 0px; padding-left: 0px; padding-right: 0px; display: inline; float: none; padding-top: 0px" id="scid:812469c5-0cb0-4c63-8c15-c81123a09de7:a3607ab5-e967-4385-aba8-a30a0f173305" class="wlWriterEditableSmartContent"><pre name="code" class="xml">&lt;PropertyGroup&gt;
+  &lt;Configuration Condition=" '$(Configuration)' == '' "&gt;Debug&lt;/Configuration&gt;
+  &lt;ProjectDir&gt;src&lt;/ProjectDir&gt;
+  &lt;ProjectName&gt;TasklistGenerator&lt;/ProjectName &gt;
+  &lt;ProjectFile&gt;$(ProjectName).sln&lt;/ProjectFile &gt;
+&lt;/PropertyGroup&gt;
+
+&lt;Target Name="Build" DependsOnTargets="Clean"&gt;
+    &lt;MSBuild Projects="$(ProjectFile)" Properties="Configuration=Debug" /&gt;
+&lt;/Target&gt;
+  </pre></div>
+
+<p>The Property group section is the place where you define you constants. This could include the project name, tools path and every thing you may use at different places.</p>
+
+<h3>TeamCity</h3>
+
+<p>After testing the build script and pushing the code to the repository, we can start configuring TeamCity to do the CI work. At first we have to create a new project in the admin panel. This task is as easy as clicking through the wizard steps, filling out some text boxes and ready you are. TeamCity makes really pleasant. Out of the box is Git not supported. Anyway JetBrains has developed a plug-in to enable Git repositories. You have just to download this file from <a href="http://www.jetbrains.net/confluence/display/TW/Git">JetBrains</a> and it to the place described.</p>
+
+<p>&#160;</p>
+
+<p><a href="http://abstractast.com/wp-content/uploads/2009/09/configrunner.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="TeamCity configuration runner msbuild" border="0" alt="TeamCity configuration runner msbuild" src="http://abstractast.com/wp-content/uploads/2009/09/configrunner_thumb.jpg" width="558" height="331" /></a> </p>
+
+<p>For the source code repository you should have been able to choose Git from the list after getting the Git plugin installed properly. </p>
+
+<p>In the build triggering section you can specify when you want the build process to be started. Plausible options are either when the repository changes, i.e. when you push modification, or scheduled on a regular base, usually in the nightly, the so called nightly build. </p>
+
+<p><a href="http://abstractast.com/wp-content/uploads/2009/09/configtigger.jpg"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="TeamCity configuration build triggering" border="0" alt="TeamCity configuration build triggering" src="http://abstractast.com/wp-content/uploads/2009/09/configtigger_thumb.jpg" width="558" height="331" /></a> </p>
+
+<h3>&#160;</h3>
+
+<h3>Artifacts</h3>
+
+<p>Artifacts are any data items generated during the build process. Those could be binaries, documentation, reports, etc. Because of distributed nature of TeamCity, the actual compiling process doesn’t have to happen physically on the save machine as the TeamCity server. Thus, the artifacts you want to keep have to be specified explicitly, so that they be copied from the machine of the build agent and kept on the server.</p>
+
+<p>Suppose for now the build script generates an html file containing the task list parsed from the source code and save it to CHECKOUT_FOLDER\<em>doc\tasklist.html</em>.&#160; If you want TeamCity to copy this file and make available for download in the artifacts tab of the build report, you have to specify it in the artifacts section</p>
+
+<p><a href="http://abstractast.com/wp-content/uploads/2009/09/configartifacts.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="TeamCity configuration artifacts" border="0" alt="TeamCity configuration artifacts" src="http://abstractast.com/wp-content/uploads/2009/09/configartifacts_thumb.png" width="558" height="329" /></a> </p>
+
+<p>If you want to add an alias to the copied artifacts, just use the =&gt; syntax </p>
+
+<p><em>doc\tasklist.html =&gt; tasks.html</em></p>
+
+<p>You can also copy a whole folder of artifacts.</p>
+
+<p>Now we are ready to go. Every thing is configured and we can trigger a test build. Just click the “run” that you see on almost every project page. If every thing went well you should see a new green line in the result page of the project.</p>
+
+<p><a href="http://abstractast.com/wp-content/uploads/2009/09/teamcity_overview_atrifacts.png"><img style="border-right-width: 0px; display: inline; border-top-width: 0px; border-bottom-width: 0px; border-left-width: 0px" title="TeamCity overview artifacts" border="0" alt="TeamCity overview artifacts" src="http://abstractast.com/wp-content/uploads/2009/09/teamcity_overview_atrifacts_thumb.png" width="558" height="330" /></a> </p>
+
+<p>&#160;</p>
+
+<h3>Outlook</h3>
+
+<p>It was just the start. What you can do in the CI process is only limited by your imagination and time. You could generate code metric reports, what we will do in the next posts, generate release binaries, push them to the download server, generate documentation,&#160; push the new ASP.Net files to the server and precompile them, etc. </p>
+
+<p>For the next posts, we will see how to integrate NDepend, NCover, FxCop and code documentation with the build process. </p>
+
+<p>See you later!</p>
