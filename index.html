@@ -1,6 +1,6 @@
 ---
 layout: layout
-title: "In The Attic"
+title: "Abstract Ast"
 ---
 <p></p>
 {% for post in site.posts offset: 0 limit: 50 %}
@@ -9,7 +9,7 @@ title: "In The Attic"
     <div class="row">
       <div class="span2 hidden-phone hidden-tablet">
         <a href="{{ post.url }}" >
-            <img class="listImage img-rounded" border="0" src="/img/posts/{{ post.image }}" alt="{{ post.title }} image">
+            <img class="listImage img-rounded" border="0" src="/img/posts/{{ post.image || 'placeholder.png'}}" alt="{{ post.title }} image">
         </a>
       </div>
       <div class="span5">
