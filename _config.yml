@@ -6,7 +6,7 @@ title: Abstract AST
 
 url: http://mouk.github.io
 
-permalink: /:year/:month/:day/:title/
+permalink: /:year/:month/:title/
 
 author:
     name: Moukarram Kabbash
